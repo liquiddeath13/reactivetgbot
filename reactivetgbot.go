@@ -96,7 +96,7 @@ func HerokuServiceUP(Description string) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(Description))
 	})
-	go log.Fatal(http.ListenAndServe(os.Getenv("PORT"), nil))
+	go log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 	HerokuUpTimer := time.NewTimer(5 * time.Minute)
 	URL := "https://api.ipify.org?format=text"
 	for {
