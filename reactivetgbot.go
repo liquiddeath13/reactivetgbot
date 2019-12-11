@@ -83,6 +83,7 @@ func Init(token, qafile string) *Bot {
 	HandlePanicError(nil, json.Unmarshal(ByteContent.([]byte), &Local))
 	Result := Bot{}
 	Result.Unit = Instance
+	Result.QABase = make(map[string]interface{})
 	for _, Object := range Local {
 		Result.QABase[Object.Question] = Object.Answer
 	}
