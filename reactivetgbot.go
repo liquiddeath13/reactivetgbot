@@ -56,6 +56,9 @@ func (b *Bot) Logic() {
 				continue
 			}
 			Message := Update.Message
+			if b.QABase[Message.Text] == nil {
+				continue
+			}
 			AnswerType := reflect.TypeOf(b.QABase[Message.Text]).Kind().String()
 			Answer := ""
 			switch AnswerType {
