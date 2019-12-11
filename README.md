@@ -35,7 +35,7 @@ And now you can use it at your application:
 package main
 
 import (
-	"reactivetgbot"
+	reactivetgbot "github.com/liquiddeath13/reactivetgbot"
 )
 
 func main() {
@@ -54,15 +54,15 @@ Example:
 package main
 
 import (
-	"reactivetgbot"
 	"fmt"
+	reactivetgbot "github.com/liquiddeath13/reactivetgbot"
 )
 
 func main() {
 	BotInstance := reactivetgbot.Init("token", "/path/base.json")
 	AskCounter := 0
 	if BotInstance != nil {
-		BotInstance.AppendHandler("how much peoples asked you?", func(Msg bbctg.TGMessage) string {
+		BotInstance.AppendHandler("how much peoples asked you?", func(Msg reactivetgbot.TGMessage) string {
 			AskCounter++
 			return fmt.Sprintf("Hello.\n%d - so many people, who already asked me about this", AskCounter)
 		})
