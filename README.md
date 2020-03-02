@@ -1,4 +1,4 @@
-# dev engine for Telegram ChatBot
+# Development engine for Telegram ChatBot
 <img src="https://github.com/liquiddeath13/reactivetgbot/raw/master/media/blueberrycat.gif" width="150">
 
 ### Why do you need a ChatBot and why our team develop that tool?
