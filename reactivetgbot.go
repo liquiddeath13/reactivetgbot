@@ -16,6 +16,7 @@ type (
 	QAPair struct {
 		Question string `json:"Question"`
 		Answer   string `json:"Answer"`
+		Pattern  string `json:"Pattern"`
 	}
 	Bot struct {
 		Unit      *tgbotapi.BotAPI
@@ -42,8 +43,17 @@ func HandleInfoError(arg interface{}, Error error) interface{} {
 	return arg
 }
 
-func (b *Bot) AppendHandler(Question string, Handler func(Msg TGMessage) string) {
-	b.QABase[Question] = Handler
+func (b *Bot) AppendPatternHandler(PatternList []string, Handler func(Msg TGMessage, args ...interface{}) string) {
+	for _, pattern := range PatternList {
+		b.QABase[pattern] = Handler
+	}
+}
+
+func extractMapKeys(src map[string]interface{}) (result []string) {
+	for key := range src {
+		result = append(result, key)
+	}
+	return
 }
 
 func (b *Bot) Logic() {
@@ -61,10 +71,14 @@ func (b *Bot) Logic() {
 			Answer := ""
 			switch AnswerType {
 			case reflect.String:
-				Answer = b.QABase[Message.Text].(string)
+				for _, pattern := range extractMapKeys(b.QABase) {
+					if strings.Contains(Message.Text, pattern) {
+						Answer = b.QABase[pattern].(string)
+					}
+				}
 				break
 			case reflect.Func:
-				Handler := b.QABase[Message.Text].(func(TGMessage) string)
+				Handler := b.QABase[Message.Text].(func(TGMessage, ...interface{}) string)
 				Answer = Handler(Message)
 				break
 			}
