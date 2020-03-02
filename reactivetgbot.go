@@ -2,14 +2,14 @@ package reactivetgbot
 
 import (
 	"encoding/json"
+	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"reflect"
-	"time"
-
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"strings"
 )
 
 type (
@@ -25,6 +25,8 @@ type (
 	}
 	TGMessage *tgbotapi.Message
 )
+
+var Host = ""
 
 func HandlePanicError(arg interface{}, Error error) interface{} {
 	if Error != nil {
@@ -45,13 +47,9 @@ func (b *Bot) AppendHandler(Question string, Handler func(Msg TGMessage) string)
 }
 
 func (b *Bot) Logic() {
-	UpdatesConfig := tgbotapi.NewUpdate(0)
-	UpdatesConfig.Timeout = 40
-	IUpdateChannel := HandlePanicError(b.Unit.GetUpdatesChan(UpdatesConfig))
-	UpdateChannel := IUpdateChannel.(tgbotapi.UpdatesChannel)
 	for {
 		select {
-		case Update := <-UpdateChannel:
+		case Update := <-b.Unit.ListenForWebhook("/" + b.Token):
 			if Update.Message == nil {
 				continue
 			}
@@ -59,59 +57,50 @@ func (b *Bot) Logic() {
 			if b.QABase[Message.Text] == nil {
 				continue
 			}
-			AnswerType := reflect.TypeOf(b.QABase[Message.Text]).Kind().String()
+			AnswerType := reflect.TypeOf(b.QABase[Message.Text]).Kind()
 			Answer := ""
 			switch AnswerType {
-			case "string":
+			case reflect.String:
 				Answer = b.QABase[Message.Text].(string)
 				break
-			case "func":
+			case reflect.Func:
 				Handler := b.QABase[Message.Text].(func(TGMessage) string)
 				Answer = Handler(Message)
 				break
 			}
-			b.Unit.Send(tgbotapi.NewMessage(Message.Chat.ID, Answer))
+			HandleInfoError(b.Unit.Send(tgbotapi.NewMessage(Message.Chat.ID, Answer)))
 		}
 	}
 }
 
-func Init(token, qafile string) *Bot {
+func Init(token, dictionary string) *Bot {
+	newTelegramBot := Bot{}
 	IInstance := HandlePanicError(tgbotapi.NewBotAPI(token))
-	Instance := IInstance.(*tgbotapi.BotAPI)
-	IJSONFile := HandlePanicError(os.Open(qafile))
-	JSONFile := IJSONFile.(*os.File)
-	defer JSONFile.Close()
-	ByteContent := HandlePanicError(ioutil.ReadAll(JSONFile))
-	Local := []QAPair{}
-	HandlePanicError(nil, json.Unmarshal(ByteContent.([]byte), &Local))
-	Result := Bot{}
-	Result.Unit = Instance
-	Result.QABase = make(map[string]interface{})
-	for _, Object := range Local {
-		Result.QABase[Object.Question] = Object.Answer
+	newTelegramBot.Unit = IInstance.(*tgbotapi.BotAPI)
+	newTelegramBot.QABase = make(map[string]interface{})
+	if dictionary != "" {
+		IJSONFile := HandlePanicError(os.Open(dictionary))
+		JSONFile := IJSONFile.(*os.File)
+		defer JSONFile.Close()
+		ByteContent := HandlePanicError(ioutil.ReadAll(JSONFile))
+		var Local []QAPair
+		HandlePanicError(nil, json.Unmarshal(ByteContent.([]byte), &Local))
+		for _, Object := range Local {
+			newTelegramBot.QABase[Object.Question] = Object.Answer
+		}
 	}
-	return &Result
+	return &newTelegramBot
 }
 
-func HerokuServiceUP(Description string) {
+func (b *Bot) HerokuUsage(Description string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		Host = strings.Split(strings.Split(strings.Split(r.RequestURI, "//")[1], "/")[0], ".")[0]
+		println(Host)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(Description))
+		HandleInfoError(w.Write([]byte(Description)))
 	})
 	go log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
-	HerokuUpTimer := time.NewTimer(5 * time.Minute)
-	URL := "https://api.ipify.org?format=text"
-	for {
-		Response, Error := http.Get(URL)
-		if Error != nil {
-			panic(Error)
-		}
-		defer Response.Body.Close()
-		_, Error = ioutil.ReadAll(Response.Body)
-		if Error != nil {
-			panic(Error)
-		}
-		<-HerokuUpTimer.C
-	}
+	HandleInfoError(http.Get(":" + os.Getenv("PORT")))
+	HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s.herokuapp.com/%s", b.Token, Host, b.Token)))
 }
