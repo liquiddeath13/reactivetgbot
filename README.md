@@ -43,7 +43,7 @@ func main() {
     if BotInstance != nil {
         go BotInstance.Logic()
         //if we need host our application on Heroku and shouldn't think about uptime
-        go reactivetgbot.HerokuServiceUP("Telegram ChatBot by liquiddeath13")
+        reactivetgbot.HerokuServiceUP("Telegram ChatBot by liquiddeath13")
     }
 }
 ```
@@ -67,7 +67,7 @@ func main() {
 			return fmt.Sprintf("Hello.\n%d - so many people, who already asked me about this", AskCounter)
 		})
 		go BotInstance.Logic()
-		go reactivetgbot.HerokuServiceUP("Telegram ChatBot by liquiddeath13")
+		reactivetgbot.HerokuServiceUP("Telegram ChatBot by liquiddeath13")
 	}
 }
 ```
