@@ -58,9 +58,10 @@ func extractMapKeys(src map[string]interface{}) (result []string) {
 }
 
 func (b *Bot) Logic() {
+	updatesChan := b.Unit.ListenForWebhook("/" + b.Token)
 	for {
 		select {
-		case Update := <-b.Unit.ListenForWebhook("/" + b.Token):
+		case Update := <-updatesChan:
 			if Update.Message == nil {
 				continue
 			}
@@ -80,8 +81,13 @@ func (b *Bot) Logic() {
 				}
 				break
 			case reflect.Func:
-				Handler := b.QABase[Message.Text].(func(TGMessage, ...interface{}) string)
-				Answer = Handler(Message)
+				for _, pattern := range extractMapKeys(b.QABase) {
+					r, _ := regexp.Compile(pattern)
+					if r.MatchString(Message.Text) {
+						Handler := b.QABase[Message.Text].(func(TGMessage, ...interface{}) string)
+						Answer = Handler(Message)
+					}
+				}
 				break
 			}
 			HandleInfoError(b.Unit.Send(tgbotapi.NewMessage(Message.Chat.ID, Answer)))
@@ -110,13 +116,11 @@ func Init(token, dictionary string) *Bot {
 
 func (b *Bot) HerokuUsage(Description string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		Host = strings.Split(strings.Split(strings.Split(r.RequestURI, "//")[1], "/")[0], ".")[0]
-		println(Host)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		HandleInfoError(w.Write([]byte(Description)))
+		HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s.herokuapp.com/%s", b.Token, strings.Split(r.Host, ".")[0], b.Token)))
 	})
 	go log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 	HandleInfoError(http.Get(":" + os.Getenv("PORT")))
-	HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s.herokuapp.com/%s", b.Token, Host, b.Token)))
 }
