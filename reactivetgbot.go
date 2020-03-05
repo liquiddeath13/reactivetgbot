@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -72,7 +73,8 @@ func (b *Bot) Logic() {
 			switch AnswerType {
 			case reflect.String:
 				for _, pattern := range extractMapKeys(b.QABase) {
-					if strings.Contains(Message.Text, pattern) {
+					r, _ := regexp.Compile(pattern)
+					if r.MatchString(Message.Text) {
 						Answer = b.QABase[pattern].(string)
 					}
 				}
