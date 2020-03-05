@@ -10,7 +10,6 @@ import (
 	"os"
 	"reflect"
 	"regexp"
-	"strings"
 )
 
 type (
@@ -119,7 +118,7 @@ func (b *Bot) HerokuUsage(Description string) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		HandleInfoError(w.Write([]byte(Description)))
-		HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s.herokuapp.com/%s", b.Token, strings.Split(r.Host, ".")[0], b.Token)))
+		HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s/%s", b.Token, r.Host, b.Token)))
 	})
 	go log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 	HandleInfoError(http.Get(":" + os.Getenv("PORT")))
