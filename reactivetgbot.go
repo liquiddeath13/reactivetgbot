@@ -3,13 +3,14 @@ package reactivetgbot
 import (
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"reflect"
 	"regexp"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type (
@@ -98,6 +99,7 @@ func Init(token, dictionary string) *Bot {
 	newTelegramBot := Bot{}
 	IInstance := HandlePanicError(tgbotapi.NewBotAPI(token))
 	newTelegramBot.Unit = IInstance.(*tgbotapi.BotAPI)
+	newTelegramBot.Token = token
 	newTelegramBot.QABase = make(map[string]interface{})
 	if dictionary != "" {
 		IJSONFile := HandlePanicError(os.Open(dictionary))
@@ -114,11 +116,13 @@ func Init(token, dictionary string) *Bot {
 }
 
 func (b *Bot) HerokuUsage(Description string) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/about", func(w http.ResponseWriter, r *http.Request) {
+		x := fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s/%s", b.Token, r.Host, b.Token)
+		log.Println(x)
+		HandlePanicError(http.Get(x))
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		HandleInfoError(w.Write([]byte(Description)))
-		HandlePanicError(http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook?url=https://%s/%s", b.Token, r.Host, b.Token)))
 	})
 	go log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 	HandleInfoError(http.Get(":" + os.Getenv("PORT")))
